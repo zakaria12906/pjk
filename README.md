@@ -1,27 +1,77 @@
-# 🚀 Projet Charazad - Architecture Big Data pour l'Analyse de Logs Web
+# TP Avancé - Analyse de Logs Web avec Architecture Big Data
 
-## 📋 Description
+## Description
 
-Projet d'analyse de logs web utilisant une architecture Big Data distribuée avec Docker. Le système analyse les logs d'un site e-commerce de cosmétiques en utilisant **Apache Spark** (batch et streaming), **HDFS**, **Kafka**, et **MongoDB**.
+Projet d'analyse de logs web d'un site e-commerce de cosmétiques utilisant une architecture Big Data distribuée.
 
 **Dépôt GitHub**: https://github.com/zakaria12906/pjk.git
 
 ---
 
-## 🎯 Fonctionnalités
+## 📁 Structure du Projet
 
-### 📊 Analyses Batch (Données Historiques)
-1. **Top 10 Produits** - Produits les plus consultés
-2. **Codes HTTP** - KPIs de santé du serveur (taux de succès, erreurs)
-3. **Top 10 IPs** - IPs les plus actives avec détection de bots
-
-### ⚡ Analyses Streaming (Temps Réel)
-1. **Détection d'Erreurs** - Alertes sur pics d'erreurs 404/500 (fenêtre 5 min)
-2. **Produits Tendance** - Produits populaires en temps réel (>20 vues/min)
+```
+Projet_charazad/
+├── README.md                          # Ce fichier
+├── docker-compose.yml                 # Orchestration des services
+├── .gitignore
+│
+├── data/
+│   └── web_server.log                # Fichier de logs (40 lignes)
+│
+├── spark/
+│   ├── requirements.txt              # pyspark==3.3.0, pymongo==4.3.3
+│   ├── batch/
+│   │   └── top_products.py           # Analyse batch: Top 10 produits
+│   └── streaming/
+│       └── error_detection.py        # Analyse streaming: Détection erreurs
+│
+└── kafka/
+    ├── requirements.txt              # kafka-python==2.0.2
+    └── log_producer.py               # Producteur Kafka
+```
 
 ---
 
-## 🏗️ Architecture
+## 🎯 Analyses Implémentées
+
+### 1. Analyse Batch - Produits les Plus Consultés
+
+**Fichier**: `spark/batch/top_products.py`
+
+**Objectif**: Identifier les 10 produits (par leur ID) ayant reçu le plus de requêtes.
+
+**Algorithme**:
+- Lecture des logs depuis HDFS
+- Parsing et extraction des IDs de produits
+- Comptage par ID avec MapReduce
+- Tri décroissant et sélection du Top 10
+- Sauvegarde dans MongoDB
+
+**Collection MongoDB**: `logs_analytics.top_products`
+
+---
+
+### 2. Analyse Streaming - Détection d'Erreurs en Temps Réel
+
+**Fichier**: `spark/streaming/error_detection.py`
+
+**Objectif**: Surveiller les logs pour détecter des pics d'erreurs (codes 404 ou 500) sur un intervalle de 5 minutes.
+
+**Méthode**:
+- Consommation depuis Kafka (topic: `web-logs`)
+- Fenêtrage temporel: 5 minutes (slide 1 minute)
+- Filtrage des codes 404 et 500
+- Génération d'alertes si:
+  - Erreurs 500 > 10
+  - Erreurs 404 > 30
+- Sauvegarde des alertes dans MongoDB
+
+**Collection MongoDB**: `logs_analytics.error_alerts`
+
+---
+
+## 🏗️ Architecture Big Data
 
 ```
 ┌──────────────┐      ┌──────────────┐      ┌──────────────┐
@@ -42,109 +92,97 @@ Projet d'analyse de logs web utilisant une architecture Big Data distribuée ave
                                             └──────────────┘
 ```
 
-**Services Docker:**
-- **HDFS**: NameNode (9870) + DataNode (9864)
-- **Spark**: Master (8080, 7077) + Worker (8081)
-- **Kafka**: Broker (9092, 9093) + Zookeeper (2181)
-- **MongoDB**: Database (27017)
+### Services Docker
+
+| Service | Image | Port | Rôle |
+|---------|-------|------|------|
+| namenode | bde2020/hadoop-namenode:2.0.0 | 9870, 9000 | HDFS NameNode |
+| datanode | bde2020/hadoop-datanode:2.0.0 | 9864 | HDFS DataNode |
+| spark-master | bitnami/spark:3.3.0 | 8080, 7077 | Spark Master |
+| spark-worker | bitnami/spark:3.3.0 | 8081 | Spark Worker |
+| zookeeper | confluentinc/cp-zookeeper:7.3.0 | 2181 | Coordination |
+| kafka | confluentinc/cp-kafka:7.3.0 | 9092, 9093 | Message Broker |
+| mongodb | mongo:6.0 | 27017 | Base de données |
 
 ---
 
-## 📁 Structure du Projet
-
-```
-Projet_charazad/
-├── README.md                      # Ce fichier
-├── ARCHITECTURE.md                # Justifications techniques détaillées
-├── QUICKSTART.md                  # Guide démarrage rapide (10 min)
-├── LIVRABLE.md                    # Document de livraison
-├── INDEX.md                       # Navigation dans le projet
-├── docker-compose.yml             # Orchestration des services
-│
-├── data/
-│   ├── web_server.log            # Logs d'exemple (40 lignes)
-│   └── generate_logs.py          # Générateur de logs (10k lignes)
-│
-├── spark/
-│   ├── requirements.txt          # pyspark, pymongo
-│   ├── batch/
-│   │   ├── top_products.py       # Analyse #1: Top produits
-│   │   ├── http_codes.py         # Analyse #2: Codes HTTP
-│   │   └── top_ips.py            # Analyse #3: Top IPs
-│   └── streaming/
-│       ├── error_detection.py    # Streaming #1: Détection erreurs
-│       └── trending_products.py  # Streaming #2: Produits tendance
-│
-├── kafka/
-│   ├── requirements.txt          # kafka-python
-│   └── log_producer.py           # Producteur Kafka (simulation)
-│
-└── scripts/
-    ├── setup.sh                  # Configuration initiale
-    ├── prepare_hdfs.sh           # Préparation HDFS
-    ├── run_batch.sh              # Lancer analyses batch
-    ├── run_streaming.sh          # Guide streaming
-    ├── stop.sh                   # Arrêter les services
-    └── clean.sh                  # Nettoyage complet
-```
-
----
-
-## 🚀 Installation et Démarrage Rapide
+## 🚀 Installation et Exécution
 
 ### Prérequis
 - Docker >= 20.10
 - Docker Compose >= 2.0
 - 8GB RAM minimum
-- 20GB espace disque
 - Python 3.7+
 
-### Démarrage en 5 Étapes (10 minutes)
+### 1. Démarrer les services
 
-#### 1. Configuration initiale (2 min)
 ```bash
 cd /Users/zakariaeelouazzani/Desktop/Projet_charazad
-chmod +x scripts/*.sh
-./scripts/setup.sh
-```
 
-#### 2. Démarrer les services (3 min)
-```bash
 docker-compose up -d
 
-# Vérifier que tous les services sont actifs
+# Vérifier que tous les services sont démarrés
 docker-compose ps
 ```
 
-**Attendez ~2 minutes que tous les services démarrent.**
+**Attendez ~2 minutes que tous les services soient prêts.**
 
-#### 3. Préparer HDFS (1 min)
+### 2. Préparer HDFS
+
 ```bash
-./scripts/prepare_hdfs.sh
+# Créer les répertoires dans HDFS
+docker exec namenode hdfs dfs -mkdir -p /logs
+docker exec namenode hdfs dfs -chmod -R 777 /logs
+
+# Copier les logs dans HDFS
+docker exec namenode hdfs dfs -put /data/web_server.log /logs/
+
+# Vérifier
+docker exec namenode hdfs dfs -ls /logs
 ```
 
-#### 4. Lancer les analyses batch (2 min)
+### 3. Exécuter l'analyse Batch
+
 ```bash
-./scripts/run_batch.sh
+docker exec spark-master spark-submit \
+  --master spark://spark-master:7077 \
+  --packages org.mongodb.spark:mongo-spark-connector_2.12:3.0.1 \
+  /spark-apps/batch/top_products.py
 ```
 
-Cela lance séquentiellement:
-- Top 10 Produits (~30s)
-- Répartition Codes HTTP (~30s)
-- Top 10 IPs Actives (~30s)
-
-#### 5. Consulter les résultats (1 min)
+**Consulter les résultats**:
 ```bash
 docker exec -it mongodb mongo
+> use logs_analytics
+> db.top_products.find().pretty()
+```
 
-# Dans le shell MongoDB:
-use logs_analytics
-show collections
+### 4. Exécuter l'analyse Streaming
 
-# Voir les résultats
-db.top_products.find().pretty()
-db.http_codes_detailed.find().pretty()
-db.top_ips.find().pretty()
+**Terminal 1 - Démarrer le producteur Kafka**:
+```bash
+docker exec -it kafka bash
+cd /kafka-apps
+python3 log_producer.py
+
+# Dans le menu, choisir:
+# 2. ERRORS (pour tester la détection d'erreurs)
+# Durée: 300 secondes
+```
+
+**Terminal 2 - Démarrer Spark Streaming**:
+```bash
+docker exec spark-master spark-submit \
+  --master spark://spark-master:7077 \
+  --packages org.apache.spark:spark-sql-kafka-0-10_2.12:3.3.0,org.mongodb.spark:mongo-spark-connector_2.12:3.0.1 \
+  /spark-apps/streaming/error_detection.py
+```
+
+**Terminal 3 - Consulter les alertes**:
+```bash
+docker exec -it mongodb mongo
+> use logs_analytics
+> db.error_alerts.find().sort({detected_at: -1}).pretty()
 ```
 
 ---
@@ -153,215 +191,108 @@ db.top_ips.find().pretty()
 
 | Service | URL | Description |
 |---------|-----|-------------|
-| HDFS NameNode | http://localhost:9870 | Browse HDFS files |
-| HDFS DataNode | http://localhost:9864 | DataNode status |
-| Spark Master | http://localhost:8080 | Cluster overview |
-| Spark Worker | http://localhost:8081 | Worker status |
-
----
-
-## ⚡ Tester le Streaming (Optionnel)
-
-### Terminal 1: Producteur Kafka
-```bash
-docker exec -it kafka bash
-cd /kafka-apps
-python3 log_producer.py
-
-# Dans le menu:
-# 1. Choisir "2" pour mode ERRORS (pic d'erreurs)
-# 2. Durée: 300 secondes (5 minutes)
-```
-
-### Terminal 2: Détection d'erreurs
-```bash
-docker exec -it spark-master bash
-
-spark-submit \
-  --master spark://spark-master:7077 \
-  --packages org.apache.spark:spark-sql-kafka-0-10_2.12:3.3.0,org.mongodb.spark:mongo-spark-connector_2.12:3.0.1 \
-  /spark-apps/streaming/error_detection.py
-```
-
-### Terminal 3: Voir les alertes
-```bash
-docker exec -it mongodb mongo
-
-use logs_analytics
-# Rafraîchir toutes les 5 secondes
-db.error_alerts.find().sort({detected_at: -1}).limit(5).pretty()
-```
+| HDFS NameNode | http://localhost:9870 | Interface web HDFS |
+| Spark Master | http://localhost:8080 | Interface Spark Master |
+| Spark Worker | http://localhost:8081 | État Worker |
 
 ---
 
 ## 🛑 Arrêter les Services
 
 ```bash
-./scripts/stop.sh
-
-# OU directement
 docker-compose down
+```
+
+Pour supprimer également les volumes (données):
+```bash
+docker-compose down -v
 ```
 
 ---
 
-## 🧹 Nettoyage Complet
+## 🛠️ Technologies Utilisées
 
-**⚠️ ATTENTION: Supprime toutes les données !**
+- **HDFS** 3.2.1 - Stockage distribué
+- **Apache Spark** 3.3.0 - Traitement batch et streaming
+- **Apache Kafka** 7.3.0 - Streaming de données
+- **Zookeeper** 7.3.0 - Coordination
+- **MongoDB** 6.0 - Stockage des résultats
+- **Docker** & **Docker Compose** - Orchestration
 
-```bash
-./scripts/clean.sh
-```
+---
+
+## 📝 Justifications Techniques
+
+### Pourquoi HDFS ?
+- Tolérance aux pannes (réplication)
+- Scalabilité horizontale
+- Intégration native avec Spark
+
+### Pourquoi Spark ?
+- Performance in-memory (100x MapReduce)
+- API unifiée batch + streaming
+- Support Python (PySpark)
+
+### Pourquoi Kafka ?
+- Débit massif
+- Persistance durable
+- Découplage producteur/consommateur
+
+### Pourquoi MongoDB ?
+- Schéma flexible (JSON)
+- Performance avec index
+- Connector Spark natif
+
+---
+
+## 📚 Livrables
+
+Conformément au sujet du TP, ce projet contient:
+
+1. ✅ **Code source des traitements Spark**:
+   - `spark/batch/top_products.py`
+   - `spark/streaming/error_detection.py`
+
+2. ✅ **Fichier docker-compose.yml**:
+   - Orchestration de 7 services (Hadoop, Spark, Kafka, MongoDB)
+
+3. ✅ **Architecture distribuée fonctionnelle**:
+   - HDFS pour stockage
+   - Spark pour traitement (batch + stream)
+   - Communication inter-services vérifiée
 
 ---
 
 ## 🐛 Dépannage
 
-### Erreur: "Cannot connect to Docker daemon"
+### Port déjà utilisé
 ```bash
-# Démarrer Docker Desktop (Mac/Windows)
-# OU sur Linux:
-sudo systemctl start docker
-```
-
-### Erreur: "Port already in use"
-```bash
-# Trouver le processus (exemple: 9870)
 lsof -i :9870
 kill -9 <PID>
 ```
 
-### Erreur: "HDFS in safe mode"
+### HDFS en safe mode
 ```bash
 docker exec namenode hdfs dfsadmin -safemode leave
 ```
 
-### Spark job échoue avec OutOfMemory
+### Voir les logs
 ```bash
-# Augmenter la mémoire dans docker-compose.yml
-SPARK_WORKER_MEMORY=4G  # au lieu de 2G
-docker-compose restart spark-worker
+docker logs -f spark-master
+docker logs -f kafka
 ```
 
 ---
 
-## 🛠️ Justifications Techniques
+## 📦 Dépôt GitHub
 
-### Pourquoi HDFS ?
-- ✅ Tolérance aux pannes (réplication)
-- ✅ Scalabilité horizontale
-- ✅ Intégration native avec Spark
-- ✅ Optimisé pour gros fichiers
+**URL**: https://github.com/zakaria12906/pjk.git
 
-### Pourquoi Spark ?
-- ✅ Performance in-memory (100x MapReduce)
-- ✅ API unifiée batch + streaming
-- ✅ Écosystème riche (MLlib, SQL)
-- ✅ Support Python (PySpark)
-
-### Pourquoi Kafka ?
-- ✅ Débit massif (millions msg/sec)
-- ✅ Persistance durable
-- ✅ Découplage producteur/consommateur
-- ✅ Rejouabilité des messages
-
-### Pourquoi MongoDB ?
-- ✅ Schéma flexible (JSON)
-- ✅ Performance (index B-tree)
-- ✅ Agrégations puissantes
-- ✅ Connector Spark natif
-
-Pour plus de détails, voir **[ARCHITECTURE.md](ARCHITECTURE.md)**.
-
----
-
-## 📚 Documentation
-
-- **[QUICKSTART.md](QUICKSTART.md)** - Guide de démarrage rapide (10 min)
-- **[ARCHITECTURE.md](ARCHITECTURE.md)** - Justifications techniques complètes
-- **[LIVRABLE.md](LIVRABLE.md)** - Document de livraison académique
-- **[INDEX.md](INDEX.md)** - Navigation et index du projet
-
----
-
-## 💡 Commandes Utiles
-
-### Logs des conteneurs
 ```bash
-docker logs -f spark-master     # Logs Spark
-docker logs -f kafka            # Logs Kafka
-docker logs -f namenode         # Logs HDFS
-```
-
-### État du cluster
-```bash
-docker-compose ps               # État des conteneurs
-docker stats                    # Usage CPU/RAM
-docker exec namenode hdfs dfsadmin -report  # État HDFS
-```
-
-### Shell interactif
-```bash
-docker exec -it spark-master bash   # Shell Spark
-docker exec -it namenode bash       # Shell Hadoop
-docker exec -it mongodb mongo       # Shell MongoDB
+git clone https://github.com/zakaria12906/pjk.git
+cd pjk
 ```
 
 ---
 
-## ✅ Checklist de Validation
-
-Avant de considérer le projet comme fonctionnel:
-
-- [ ] Tous les conteneurs sont en état "Up" (`docker-compose ps`)
-- [ ] HDFS contient le fichier de logs (`hdfs dfs -ls /logs`)
-- [ ] Les 3 analyses batch s'exécutent sans erreur
-- [ ] Les résultats sont visibles dans MongoDB
-- [ ] Les interfaces web sont accessibles
-- [ ] Le streaming fonctionne (optionnel)
-
----
-
-## 🎓 Objectifs Pédagogiques
-
-En complétant ce projet, vous aurez maîtrisé:
-
-✅ Architecture distribuée avec Docker  
-✅ HDFS pour stockage distribué  
-✅ Spark Batch (RDD, DataFrame)  
-✅ Spark Structured Streaming  
-✅ Kafka pour streaming de données  
-✅ MongoDB pour NoSQL  
-✅ Intégration complète de l'écosystème Big Data
-
----
-
-## 📊 Tests et Documentation de Test
-
-Le dossier contient également des guides de test pour l'application web:
-
-- **GUIDE_TEST_ETAPES.md** - Guide de test étape par étape
-- **RESUME_API.md** - Résumé des endpoints API
-- **RESULTATS_TESTS.md** - Template pour résultats de tests
-
-Ces fichiers documentent comment tester l'application web dont les logs sont analysés.
-
----
-
-## 👨‍💻 Auteur
-
-Projet réalisé dans le cadre du cours de Big Data et Data Engineering.
-
-**Dépôt GitHub**: https://github.com/zakaria12906/pjk.git
-
----
-
-## 📝 Licence
-
-MIT License - Usage académique et éducatif.
-
----
-
-**Bon courage ! 🚀**
-
-*Pour un démarrage ultra-rapide, consultez [QUICKSTART.md](QUICKSTART.md)*
+**Projet réalisé dans le cadre du TP Avancé - Big Data**
