@@ -1,0 +1,49 @@
+PROJET: TP Avancé - Analyse de Logs Web
+========================================
+
+STRUCTURE FINALE DU PROJET (8 fichiers)
+========================================
+
+Projet_charazad/
+│
+├── docker-compose.yml              ✅ LIVRABLE OBLIGATOIRE (Orchestration 7 services)
+│
+├── README.md                       ✅ Instructions essentielles
+│
+├── data/
+│   └── web_server.log             ✅ Données d'entrée (40 lignes)
+│
+├── spark/
+│   ├── requirements.txt           ✅ Dépendances Python
+│   ├── batch/
+│   │   └── top_products.py        ✅ LIVRABLE OBLIGATOIRE (Analyse batch)
+│   └── streaming/
+│       └── error_detection.py     ✅ LIVRABLE OBLIGATOIRE (Analyse stream)
+│
+└── kafka/
+    ├── requirements.txt           ✅ Dépendances Python
+    └── log_producer.py            ✅ Producteur pour streaming
+
+========================================
+TOTAL: 8 fichiers
+========================================
+
+LIVRABLES CONFORMES AU SUJET:
+------------------------------
+1. Code source Spark batch          ✅ spark/batch/top_products.py
+2. Code source Spark stream         ✅ spark/streaming/error_detection.py
+3. Fichier docker-compose.yml       ✅ docker-compose.yml
+
+CONFORMITÉ:
+-----------
+✅ Au moins 2 analyses (1 batch + 1 stream)
+✅ HDFS configuré (namenode + datanode)
+✅ Apache Spark configuré (master + worker)
+✅ Kafka configuré (kafka + zookeeper)
+✅ MongoDB configuré
+✅ Docker Compose avec 7 services
+✅ Communication inter-services vérifiée
+
+========================================
+Dépôt GitHub: https://github.com/zakaria12906/pjk.git
+========================================
