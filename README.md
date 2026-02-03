@@ -2,9 +2,7 @@
 
 ## Description
 
-Projet d'analyse de logs web d'un site e-commerce de cosmétiques utilisant une architecture Big Data distribuée.
-
-**Dépôt GitHub**: https://github.com/zakaria12906/pjk.git
+Analyse de logs web d'un site e-commerce de cosmétiques utilisant une architecture Big Data distribuée (HDFS, Spark, Kafka, MongoDB).
 
 ---
 
@@ -12,133 +10,71 @@ Projet d'analyse de logs web d'un site e-commerce de cosmétiques utilisant une 
 
 ```
 Projet_charazad/
-├── README.md                          # Ce fichier
-├── docker-compose.yml                 # Orchestration des services
-├── .gitignore
-│
+├── docker-compose.yml              # Orchestration des services
 ├── data/
-│   └── web_server.log                # Fichier de logs (40 lignes)
-│
+│   └── web_server.log             # Fichier de logs à analyser
 ├── spark/
-│   ├── requirements.txt              # pyspark==3.3.0, pymongo==4.3.3
+│   ├── requirements.txt           # pyspark, pymongo
 │   ├── batch/
-│   │   └── top_products.py           # Analyse batch: Top 10 produits
+│   │   └── top_products.py        # Analyse batch: Top 10 produits
 │   └── streaming/
-│       └── error_detection.py        # Analyse streaming: Détection erreurs
-│
+│       └── error_detection.py     # Analyse streaming: Détection erreurs
 └── kafka/
-    ├── requirements.txt              # kafka-python==2.0.2
-    └── log_producer.py               # Producteur Kafka
+    ├── requirements.txt           # kafka-python
+    └── log_producer.py            # Producteur Kafka
 ```
 
 ---
 
 ## 🎯 Analyses Implémentées
 
-### 1. Analyse Batch - Produits les Plus Consultés
+### 1. Analyse Batch - Top 10 Produits
 
-**Fichier**: `spark/batch/top_products.py`
+- **Fichier**: `spark/batch/top_products.py`
+- **Objectif**: Identifier les produits les plus consultés
+- **Source**: HDFS (`/logs/web_server.log`)
+- **Output**: MongoDB (`logs_analytics.top_products`)
 
-**Objectif**: Identifier les 10 produits (par leur ID) ayant reçu le plus de requêtes.
+### 2. Analyse Streaming - Détection d'Erreurs
 
-**Algorithme**:
-- Lecture des logs depuis HDFS
-- Parsing et extraction des IDs de produits
-- Comptage par ID avec MapReduce
-- Tri décroissant et sélection du Top 10
-- Sauvegarde dans MongoDB
-
-**Collection MongoDB**: `logs_analytics.top_products`
-
----
-
-### 2. Analyse Streaming - Détection d'Erreurs en Temps Réel
-
-**Fichier**: `spark/streaming/error_detection.py`
-
-**Objectif**: Surveiller les logs pour détecter des pics d'erreurs (codes 404 ou 500) sur un intervalle de 5 minutes.
-
-**Méthode**:
-- Consommation depuis Kafka (topic: `web-logs`)
-- Fenêtrage temporel: 5 minutes (slide 1 minute)
-- Filtrage des codes 404 et 500
-- Génération d'alertes si:
-  - Erreurs 500 > 10
-  - Erreurs 404 > 30
-- Sauvegarde des alertes dans MongoDB
-
-**Collection MongoDB**: `logs_analytics.error_alerts`
+- **Fichier**: `spark/streaming/error_detection.py`
+- **Objectif**: Détecter pics d'erreurs 404/500 sur fenêtre 5 minutes
+- **Source**: Kafka (topic `web-logs`)
+- **Output**: MongoDB (`logs_analytics.error_alerts`)
 
 ---
 
-## 🏗️ Architecture Big Data
+## 🏗️ Architecture
 
-```
-┌──────────────┐      ┌──────────────┐      ┌──────────────┐
-│  Web Server  │ -->  │    HDFS      │ -->  │ Spark Batch  │
-│   (Logs)     │      │  (Storage)   │      │  Processing  │
-└──────────────┘      └──────────────┘      └──────┬───────┘
-                                                    │
-                                                    ▼
-┌──────────────┐      ┌──────────────┐      ┌──────────────┐
-│ Log Producer │ -->  │    Kafka     │ -->  │Spark Stream  │
-│  (Simulator) │      │  (Streaming) │      │  Processing  │
-└──────────────┘      └──────────────┘      └──────┬───────┘
-                                                    │
-                                                    ▼
-                                            ┌──────────────┐
-                                            │   MongoDB    │
-                                            │  (Results)   │
-                                            └──────────────┘
-```
+7 services Docker orchestrés:
 
-### Services Docker
-
-| Service | Image | Port | Rôle |
-|---------|-------|------|------|
-| namenode | bde2020/hadoop-namenode:2.0.0 | 9870, 9000 | HDFS NameNode |
-| datanode | bde2020/hadoop-datanode:2.0.0 | 9864 | HDFS DataNode |
-| spark-master | bitnami/spark:3.3.0 | 8080, 7077 | Spark Master |
-| spark-worker | bitnami/spark:3.3.0 | 8081 | Spark Worker |
-| zookeeper | confluentinc/cp-zookeeper:7.3.0 | 2181 | Coordination |
-| kafka | confluentinc/cp-kafka:7.3.0 | 9092, 9093 | Message Broker |
-| mongodb | mongo:6.0 | 27017 | Base de données |
+| Service | Port | Rôle |
+|---------|------|------|
+| namenode | 9870, 9000 | HDFS NameNode |
+| datanode | 9864 | HDFS DataNode |
+| spark-master | 8080, 7077 | Spark Master |
+| spark-worker | 8081 | Spark Worker |
+| zookeeper | 2181 | Coordination |
+| kafka | 9092 | Message Broker |
+| mongodb | 27017 | Base de données |
 
 ---
 
 ## 🚀 Installation et Exécution
 
-### Prérequis
-- Docker >= 20.10
-- Docker Compose >= 2.0
-- 8GB RAM minimum
-- Python 3.7+
-
 ### 1. Démarrer les services
 
 ```bash
-cd /Users/zakariaeelouazzani/Desktop/Projet_charazad
-
 docker-compose up -d
-
-# Vérifier que tous les services sont démarrés
-docker-compose ps
+sleep 120  # Attendre 2 minutes
 ```
-
-**Attendez ~2 minutes que tous les services soient prêts.**
 
 ### 2. Préparer HDFS
 
 ```bash
-# Créer les répertoires dans HDFS
 docker exec namenode hdfs dfs -mkdir -p /logs
 docker exec namenode hdfs dfs -chmod -R 777 /logs
-
-# Copier les logs dans HDFS
 docker exec namenode hdfs dfs -put /data/web_server.log /logs/
-
-# Vérifier
-docker exec namenode hdfs dfs -ls /logs
 ```
 
 ### 3. Exécuter l'analyse Batch
@@ -150,7 +86,7 @@ docker exec spark-master spark-submit \
   /spark-apps/batch/top_products.py
 ```
 
-**Consulter les résultats**:
+**Résultats**:
 ```bash
 docker exec -it mongodb mongo
 > use logs_analytics
@@ -159,18 +95,16 @@ docker exec -it mongodb mongo
 
 ### 4. Exécuter l'analyse Streaming
 
-**Terminal 1 - Démarrer le producteur Kafka**:
+**Terminal 1 - Producteur**:
 ```bash
 docker exec -it kafka bash
 cd /kafka-apps
+pip3 install -r requirements.txt
 python3 log_producer.py
-
-# Dans le menu, choisir:
-# 2. ERRORS (pour tester la détection d'erreurs)
-# Durée: 300 secondes
+# Choisir: 2 (ERRORS), Durée: 300
 ```
 
-**Terminal 2 - Démarrer Spark Streaming**:
+**Terminal 2 - Spark Streaming**:
 ```bash
 docker exec spark-master spark-submit \
   --master spark://spark-master:7077 \
@@ -178,7 +112,7 @@ docker exec spark-master spark-submit \
   /spark-apps/streaming/error_detection.py
 ```
 
-**Terminal 3 - Consulter les alertes**:
+**Résultats** (après 5-6 minutes):
 ```bash
 docker exec -it mongodb mongo
 > use logs_analytics
@@ -189,77 +123,32 @@ docker exec -it mongodb mongo
 
 ## 📊 Interfaces Web
 
-| Service | URL | Description |
-|---------|-----|-------------|
-| HDFS NameNode | http://localhost:9870 | Interface web HDFS |
-| Spark Master | http://localhost:8080 | Interface Spark Master |
-| Spark Worker | http://localhost:8081 | État Worker |
+- **HDFS**: http://localhost:9870
+- **Spark Master**: http://localhost:8080
+- **Spark Worker**: http://localhost:8081
 
 ---
 
-## 🛑 Arrêter les Services
+## 🛑 Arrêter
 
 ```bash
 docker-compose down
 ```
 
-Pour supprimer également les volumes (données):
+Pour supprimer les volumes (données):
 ```bash
 docker-compose down -v
 ```
 
 ---
 
-## 🛠️ Technologies Utilisées
+## 🛠️ Technologies
 
-- **HDFS** 3.2.1 - Stockage distribué
-- **Apache Spark** 3.3.0 - Traitement batch et streaming
-- **Apache Kafka** 7.3.0 - Streaming de données
-- **Zookeeper** 7.3.0 - Coordination
-- **MongoDB** 6.0 - Stockage des résultats
-- **Docker** & **Docker Compose** - Orchestration
-
----
-
-## 📝 Justifications Techniques
-
-### Pourquoi HDFS ?
-- Tolérance aux pannes (réplication)
-- Scalabilité horizontale
-- Intégration native avec Spark
-
-### Pourquoi Spark ?
-- Performance in-memory (100x MapReduce)
-- API unifiée batch + streaming
-- Support Python (PySpark)
-
-### Pourquoi Kafka ?
-- Débit massif
-- Persistance durable
-- Découplage producteur/consommateur
-
-### Pourquoi MongoDB ?
-- Schéma flexible (JSON)
-- Performance avec index
-- Connector Spark natif
-
----
-
-## 📚 Livrables
-
-Conformément au sujet du TP, ce projet contient:
-
-1. ✅ **Code source des traitements Spark**:
-   - `spark/batch/top_products.py`
-   - `spark/streaming/error_detection.py`
-
-2. ✅ **Fichier docker-compose.yml**:
-   - Orchestration de 7 services (Hadoop, Spark, Kafka, MongoDB)
-
-3. ✅ **Architecture distribuée fonctionnelle**:
-   - HDFS pour stockage
-   - Spark pour traitement (batch + stream)
-   - Communication inter-services vérifiée
+- HDFS 3.2.1 - Stockage distribué
+- Apache Spark 3.3.0 - Traitement batch et streaming
+- Apache Kafka 7.3.0 - Streaming de données
+- MongoDB 6.0 - Stockage des résultats
+- Docker & Docker Compose - Orchestration
 
 ---
 
@@ -286,13 +175,4 @@ docker logs -f kafka
 
 ## 📦 Dépôt GitHub
 
-**URL**: https://github.com/zakaria12906/pjk.git
-
-```bash
-git clone https://github.com/zakaria12906/pjk.git
-cd pjk
-```
-
----
-
-**Projet réalisé dans le cadre du TP Avancé - Big Data**
+https://github.com/zakaria12906/pjk.git
