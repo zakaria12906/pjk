@@ -133,6 +133,67 @@ services:
     networks:
       - bigdata
 
+  # ==========================================
+  # ANALYTICS RUNNER - Lance les analyses automatiquement
+  # ==========================================
+  
+  analytics-runner:
+    image: apache/spark:3.4.1
+    container_name: analytics-runner
+    user: root
+    volumes:
+      - ./spark:/spark-apps
+      - ./data:/data
+    command: >
+      bash -c "
+      pip3 install pymongo 2>/dev/null &&
+      echo '🚀 Analytics Runner - Démarrage' &&
+      echo '⏳ Attente des services (90 secondes)...' &&
+      sleep 90 &&
+      
+      echo '' &&
+      echo '=========================================' &&
+      echo '📊 ÉTAPE 1/2 - Analyse BATCH' &&
+      echo '=========================================' &&
+      
+      /opt/spark/bin/spark-submit \
+        --master spark://spark-master:7077 \
+        /spark-apps/batch/top_products_mongodb.py &&
+      
+      echo '' &&
+      echo '=========================================' &&
+      echo '📊 ÉTAPE 2/2 - Analyse STREAMING' &&
+      echo '=========================================' &&
+      
+      /opt/spark/bin/spark-submit \
+        --master spark://spark-master:7077 \
+        /spark-apps/streaming/error_detection_simple.py &&
+      
+      echo '' &&
+      echo '=========================================' &&
+      echo '🎉 ANALYSES TERMINÉES !' &&
+      echo '=========================================' &&
+      echo '' &&
+      echo '📊 Résultats dans MongoDB:' &&
+      echo '   - logs_analytics.top_products' &&
+      echo '   - logs_analytics.error_alerts' &&
+      echo '' &&
+      echo '💡 Commandes pour voir les résultats:' &&
+      echo '   docker exec -it mongodb mongosh' &&
+      echo '   use logs_analytics' &&
+      echo '   db.top_products.find().pretty()' &&
+      echo '   db.error_alerts.find().pretty()'
+      "
+    depends_on:
+      - namenode
+      - datanode
+      - spark-master
+      - spark-worker
+      - mongodb
+    networks:
+      - bigdata
+    restart: "no"
+
 # ==========================================
 # VOLUMES - Data Persistence
 # ==========================================
