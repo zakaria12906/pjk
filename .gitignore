@@ -1,26 +1,63 @@
-# Logs (fichiers souvent très volumineux)
-*.log
+# Logs (fichiers très volumineux - ne pas versionner)
 *.log.txt
 server_web.log.txt
 web_server*.log.txt
 
-# Environnement et IDE
-.cursor/
-.idea/
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Spark
+metastore_db/
+derby.log
+spark-warehouse/
+
+# HDFS
+namenode/
+datanode/
+
+# Checkpoints
+/tmp/spark-checkpoint-*/
+
+# IDE
 .vscode/
+.idea/
 *.swp
 *.swo
+*~
+.cursor/
+
+# OS
 .DS_Store
+Thumbs.db
 
-# Dépendances
-node_modules/
-__pycache__/
-*.pyc
-.venv/
-venv/
-env/
-
-# Fichiers sensibles
+# Environnement
 .env
 .env.local
 *.pem
+
+# Documentation de test (garder mais ne pas écraser)
+GUIDE_TEST_ETAPES.md
+RESULTATS_TESTS.md
+RESUME_API.md
