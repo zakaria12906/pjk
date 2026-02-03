@@ -1,0 +1,26 @@
+# Logs (fichiers souvent très volumineux)
+*.log
+*.log.txt
+server_web.log.txt
+web_server*.log.txt
+
+# Environnement et IDE
+.cursor/
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+
+# Dépendances
+node_modules/
+__pycache__/
+*.pyc
+.venv/
+venv/
+env/
+
+# Fichiers sensibles
+.env
+.env.local
+*.pem
