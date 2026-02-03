@@ -37,9 +37,11 @@ def main():
     print("   2. STREAMING - Détection erreurs 404/500")
     print()
     
-    # Chemin des analyses
-    batch_script = "/spark-apps/batch/top_products_mongodb.py"
-    streaming_script = "/spark-apps/streaming/error_detection_simple.py"
+    # Chemin des analyses (utilise le chemin absolu depuis le conteneur)
+    import os
+    base_path = os.path.dirname(os.path.abspath(__file__))
+    batch_script = os.path.join(base_path, "batch/top_products_mongodb.py")
+    streaming_script = os.path.join(base_path, "streaming/error_detection_simple.py")
     
     # Lancer les analyses
     success_batch = run_analysis(batch_script, "Analyse BATCH")
